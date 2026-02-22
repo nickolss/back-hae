@@ -21,7 +21,7 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests -U
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
@@ -58,8 +58,7 @@ jobs:
           context: .
           load: true
           tags: hae-back:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
