@@ -1,0 +1,19 @@
+# Node modules
+**/node_modules
+
+# Environment variables
+**/env.properties
+
+# Package lock
+**/package-lock.json
+**/yarn.lock
+
+# Arquivos temporários e de cache
+*.log
+*.tmp
+*.sqlite
+*.db
+
+**/target
+
+**/.vscode
