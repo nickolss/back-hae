@@ -28,18 +28,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/static/");
 
     }
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/swagger-ui/**").allowedOrigins("*"); // Permite todos os domínios
-                registry.addMapping("/swagger-resources/**").allowedOrigins("*");
-                registry.addMapping("/v2/api-docs").allowedOrigins("*");
-                registry.addMapping("/v3/api-docs/**").allowedOrigins("*");
-                registry.addMapping("/webjars/**").allowedOrigins("*");
-            }
-        };
-    }
 }
