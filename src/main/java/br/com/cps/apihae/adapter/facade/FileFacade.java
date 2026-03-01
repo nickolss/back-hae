@@ -1,0 +1,24 @@
+package br.com.cps.apihae.adapter.facade;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
+import br.com.cps.apihae.useCase.service.CloudinaryService;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Component
+public class FileFacade {
+    private final CloudinaryService cloudinaryService;
+
+    public String uploadFile(MultipartFile file, String haeId) throws IOException {
+        return cloudinaryService.uploadFile(file, haeId);
+    }
+
+    public List<String> uploadMultipleFiles(MultipartFile[] files, String haeId) throws IOException {
+        return cloudinaryService.uploadMultipleFiles(files, haeId);
+    }
+}

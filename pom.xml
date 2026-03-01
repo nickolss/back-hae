@@ -11,7 +11,7 @@
 		<relativePath />
 	</parent>
 
-	<groupId>br.com.fateczl</groupId>
+	<groupId>br.com.cps</groupId>
 	<artifactId>apihae</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>apihae</name>
