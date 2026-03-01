@@ -45,6 +45,7 @@ public class EmailService {
       System.out.println("E-mail de ativação enviado para: " + toEmail);
     } catch (MessagingException e) {
       System.err.println("Erro ao enviar e-mail de ativação para " + toEmail + ": " + e.getMessage());
+      e.printStackTrace();
     }
   }
 
