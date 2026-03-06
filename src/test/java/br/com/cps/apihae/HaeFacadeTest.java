@@ -10,11 +10,15 @@ import br.com.cps.apihae.adapter.dto.response.HaeDetailDTO;
 import br.com.cps.apihae.adapter.dto.response.HaeHoursResponseDTO;
 import br.com.cps.apihae.adapter.dto.response.HaeResponseDTO;
 import br.com.cps.apihae.adapter.facade.HaeFacade;
+import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Hae;
+import br.com.cps.apihae.domain.entity.Institution;
 import br.com.cps.apihae.domain.enums.DimensaoHae;
 import br.com.cps.apihae.domain.enums.HaeType;
 import br.com.cps.apihae.domain.enums.Modality;
 import br.com.cps.apihae.domain.enums.Status;
+import br.com.cps.apihae.useCase.Interface.IEmployeeRepository;
+import br.com.cps.apihae.useCase.util.JWTUtils;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,10 +29,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jakarta.servlet.http.Cookie;
+
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -42,6 +49,12 @@ public class HaeFacadeTest {
         @MockBean
         private HaeFacade haeFacade;
 
+        @MockBean
+        private JWTUtils jwtUtils;
+
+        @MockBean
+        private IEmployeeRepository employeeRepository;
+
         @Autowired
         private ObjectMapper objectMapper;
 
@@ -50,6 +63,9 @@ public class HaeFacadeTest {
         private HaeDetailDTO sampleDetail;
         private HaeResponseDTO sampleResponse;
         private HaeHoursResponseDTO sampleHours;
+        private static final String AUTH_TOKEN = "valid-token";
+        private static final String LOGGED_USER_ID = "user-1";
+        private static final String INSTITUTION_ID = "inst1";
 
         @BeforeEach
         void setup() {
@@ -89,6 +105,18 @@ public class HaeFacadeTest {
                 sampleHae.setObservations("Observações de teste");
                 sampleHae.setViewed(false);
                 sampleHae.setModality(Modality.PRESENCIAL);
+
+                Institution institution = new Institution();
+                institution.setId(INSTITUTION_ID);
+                sampleHae.setInstitution(institution);
+
+                Employee authenticatedEmployee = new Employee();
+                authenticatedEmployee.setId(LOGGED_USER_ID);
+                authenticatedEmployee.setInstitution(institution);
+
+                Mockito.when(jwtUtils.validateToken(AUTH_TOKEN)).thenReturn(LOGGED_USER_ID);
+                Mockito.when(employeeRepository.findById(Mockito.anyString()))
+                                .thenReturn(Optional.of(authenticatedEmployee));
 
                 sampleDetail = new HaeDetailDTO();
                 sampleDetail.setCourse("ADS");
@@ -134,9 +162,9 @@ public class HaeFacadeTest {
 
         @Test
         void testGetHaeById() throws Exception {
-                Mockito.when(haeFacade.getHaeById("1")).thenReturn(sampleDetail);
+                Mockito.when(haeFacade.getHaeById("1", INSTITUTION_ID)).thenReturn(sampleDetail);
 
-                mockMvc.perform(get("/hae/getHaeById/1"))
+                mockMvc.perform(get("/hae/getHaeById/1").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.course").value("ADS"));
         }
@@ -155,7 +183,7 @@ public class HaeFacadeTest {
                 Mockito.when(haeFacade.getHaesByEmployeeId("emp1"))
                                 .thenReturn(Collections.singletonList(sampleHae));
 
-                mockMvc.perform(get("/hae/employee/emp1"))
+                mockMvc.perform(get("/hae/employee/emp1").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -165,16 +193,18 @@ public class HaeFacadeTest {
                 Mockito.when(haeFacade.getHaesByEmployeeIdWithLimit("emp1"))
                                 .thenReturn(Collections.singletonList(sampleHae));
 
-                mockMvc.perform(get("/hae/getHaesByEmployeeIdWithLimit/emp1"))
+                mockMvc.perform(
+                                get("/hae/getHaesByEmployeeIdWithLimit/emp1").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
 
         @Test
         void testGetAllHaes() throws Exception {
-                Mockito.when(haeFacade.getAllHaes()).thenReturn(Collections.singletonList(sampleResponse));
+                Mockito.when(haeFacade.getHaesByInstitutionId(INSTITUTION_ID))
+                                .thenReturn(Collections.singletonList(sampleResponse));
 
-                mockMvc.perform(get("/hae/getAll"))
+                mockMvc.perform(get("/hae/getAll").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -200,17 +230,17 @@ public class HaeFacadeTest {
                 Mockito.when(haeFacade.getHaesByProfessorId("prof1"))
                                 .thenReturn(Collections.singletonList(sampleResponse));
 
-                mockMvc.perform(get("/hae/getHaesByProfessor/prof1"))
+                mockMvc.perform(get("/hae/getHaesByProfessor/prof1").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
 
         @Test
         void testGetHaesByCourse() throws Exception {
-                Mockito.when(haeFacade.getHaesByCourse("ADS"))
+                Mockito.when(haeFacade.advancedHaeSearch(INSTITUTION_ID, "ADS", null, null, null))
                                 .thenReturn(Collections.singletonList(sampleResponse));
 
-                mockMvc.perform(get("/hae/getHaesByCourse/ADS"))
+                mockMvc.perform(get("/hae/getHaesByCourse/ADS").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -221,7 +251,7 @@ public class HaeFacadeTest {
                 Mockito.when(haeFacade.getHaesByType(HaeType.ApoioDirecao))
                                 .thenReturn(Collections.singletonList(sampleHae));
 
-                mockMvc.perform(get("/hae/getHaesByType/ApoioDirecao"))
+                mockMvc.perform(get("/hae/getHaesByType/ApoioDirecao").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -260,7 +290,7 @@ public class HaeFacadeTest {
         void testGetViewed() throws Exception {
                 Mockito.when(haeFacade.getViewed()).thenReturn(Collections.singletonList(sampleHae));
 
-                mockMvc.perform(get("/hae/viewed"))
+                mockMvc.perform(get("/hae/viewed").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -269,7 +299,7 @@ public class HaeFacadeTest {
         void testGetNotViewed() throws Exception {
                 Mockito.when(haeFacade.getNotViewed()).thenReturn(Collections.singletonList(sampleHae));
 
-                mockMvc.perform(get("/hae/not-viewed"))
+                mockMvc.perform(get("/hae/not-viewed").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
@@ -279,28 +309,29 @@ public class HaeFacadeTest {
                 Mockito.when(haeFacade.getHaesByInstitutionId("inst1"))
                                 .thenReturn(Collections.singletonList(sampleResponse));
 
-                mockMvc.perform(get("/hae/institution/inst1"))
+                mockMvc.perform(get("/hae/institution/inst1").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
 
         @Test
         void testGetHaesByStatus() throws Exception {
-                Mockito.when(haeFacade.getHaeByStatus(Status.APROVADO))
+                Mockito.when(haeFacade.advancedHaeSearch(INSTITUTION_ID, null, null, Status.APROVADO, null))
                                 .thenReturn(Collections.singletonList(sampleResponse));
 
-                mockMvc.perform(get("/hae/getHaeByStatus/APROVADO"))
+                mockMvc.perform(get("/hae/getHaeByStatus/APROVADO").cookie(new Cookie("auth_token", AUTH_TOKEN)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].course").value("ADS"));
         }
 
         @Test
         void testSearchHaes() throws Exception {
-                Mockito.when(haeFacade.advancedHaeSearch(null, "ADS", HaeType.ApoioDirecao, Status.APROVADO,
+                Mockito.when(haeFacade.advancedHaeSearch(INSTITUTION_ID, "ADS", HaeType.ApoioDirecao, Status.APROVADO,
                                 true))
                                 .thenReturn(Collections.singletonList(sampleResponse));
 
                 mockMvc.perform(get("/hae/search")
+                                .cookie(new Cookie("auth_token", AUTH_TOKEN))
                                 .param("course", "ADS")
                                 .param("haeType", "ApoioDirecao")
                                 .param("status", "APROVADO")
