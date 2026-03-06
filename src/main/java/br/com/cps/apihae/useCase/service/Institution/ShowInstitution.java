@@ -7,11 +7,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.cps.apihae.adapter.dto.response.InstitutionResponseDTO;
+import br.com.cps.apihae.adapter.dto.response.InstitutionCourseResponseDTO;
 import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Hae;
 import br.com.cps.apihae.domain.entity.Institution;
 import br.com.cps.apihae.useCase.Interface.IEmployeeRepository;
 import br.com.cps.apihae.useCase.Interface.IHaeRepository;
+import br.com.cps.apihae.useCase.Interface.IInstitutionCourseRepository;
 import br.com.cps.apihae.useCase.Interface.IInstitutionRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +24,7 @@ public class ShowInstitution {
     private final IInstitutionRepository iInstitutionRepository;
     private final IEmployeeRepository iEmployeeRepository;
     private final IHaeRepository iHaeRepository;
+    private final IInstitutionCourseRepository iInstitutionCourseRepository;
 
     @Transactional(readOnly = true)
     public int getHaeQtdHours(String id) throws IllegalArgumentException {
@@ -60,6 +63,23 @@ public class ShowInstitution {
     public Institution getInstitutionById(String institutionId) {
         return iInstitutionRepository.findById(institutionId)
                 .orElseThrow(() -> new IllegalArgumentException("Instituição não encontrada com ID: " + institutionId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstitutionCourseResponseDTO> getCoursesByInstitutionId(String institutionId) {
+        return iInstitutionCourseRepository.findByInstitutionIdAndActiveTrueOrderByCourseNameAsc(institutionId)
+                .stream()
+                .map(InstitutionCourseResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstitutionCourseResponseDTO> getCoursesByInstitutionCode(Integer institutionCode) {
+        return iInstitutionCourseRepository
+                .findByInstitutionInstitutionCodeAndActiveTrueOrderByCourseNameAsc(institutionCode)
+                .stream()
+                .map(InstitutionCourseResponseDTO::new)
+                .collect(Collectors.toList());
     }
 
 }

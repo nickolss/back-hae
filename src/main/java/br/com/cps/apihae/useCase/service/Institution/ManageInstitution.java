@@ -6,11 +6,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.cps.apihae.adapter.dto.request.InstitutionCreateRequest;
+import br.com.cps.apihae.adapter.dto.request.InstitutionCourseRequest;
 import br.com.cps.apihae.adapter.dto.request.InstitutionUpdateRequest;
 import br.com.cps.apihae.adapter.dto.response.EmployeeResponseDTO;
+import br.com.cps.apihae.domain.entity.InstitutionCourse;
 import br.com.cps.apihae.domain.entity.Institution;
 import br.com.cps.apihae.domain.enums.Role;
 import br.com.cps.apihae.domain.factory.InstitutionFactory;
+import br.com.cps.apihae.useCase.Interface.IInstitutionCourseRepository;
 import br.com.cps.apihae.useCase.Interface.IInstitutionRepository;
 import br.com.cps.apihae.useCase.service.Employee.ShowEmployee;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class ManageInstitution {
 
     private final IInstitutionRepository iInstitutionRepository;
+    private final IInstitutionCourseRepository iInstitutionCourseRepository;
     private final ShowEmployee showEmployee;
 
     public void createInstitution(InstitutionCreateRequest request) {
@@ -84,6 +88,38 @@ public class ManageInstitution {
         institution.setInstitutionCode(request.getInstitutionCode());
 
         return iInstitutionRepository.save(institution);
+    }
+
+    @Transactional
+    public InstitutionCourse addInstitutionCourse(InstitutionCourseRequest request) {
+        String normalizedCourseName = request.getCourseName().trim();
+        if (normalizedCourseName.isBlank()) {
+            throw new IllegalArgumentException("Nome do curso inválido.");
+        }
+
+        Institution institution = iInstitutionRepository.findById(request.getInstitutionId())
+                .orElseThrow(() -> new IllegalArgumentException("Instituição não encontrada."));
+
+        iInstitutionCourseRepository
+                .findByInstitutionIdAndCourseNameIgnoreCase(request.getInstitutionId(), normalizedCourseName)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Curso já cadastrado para esta instituição.");
+                });
+
+        InstitutionCourse institutionCourse = new InstitutionCourse();
+        institutionCourse.setInstitution(institution);
+        institutionCourse.setCourseName(normalizedCourseName);
+        institutionCourse.setActive(true);
+
+        return iInstitutionCourseRepository.save(institutionCourse);
+    }
+
+    @Transactional
+    public void removeInstitutionCourse(String courseId) {
+        InstitutionCourse institutionCourse = iInstitutionCourseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Curso não encontrado."));
+
+        iInstitutionCourseRepository.delete(institutionCourse);
     }
 
 }

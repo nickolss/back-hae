@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,11 +15,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.cps.apihae.adapter.dto.request.InstitutionCreateRequest;
+import br.com.cps.apihae.adapter.dto.request.InstitutionCourseRequest;
 import br.com.cps.apihae.adapter.dto.request.InstitutionUpdateRequest;
+import br.com.cps.apihae.adapter.dto.response.InstitutionCourseResponseDTO;
 import br.com.cps.apihae.adapter.dto.response.InstitutionResponseDTO;
 import br.com.cps.apihae.adapter.facade.InstitutionFacade;
 import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Institution;
+import br.com.cps.apihae.domain.entity.InstitutionCourse;
 import br.com.cps.apihae.domain.enums.Role;
 import br.com.cps.apihae.useCase.Interface.IEmployeeRepository;
 import br.com.cps.apihae.useCase.util.JWTUtils;
@@ -103,6 +107,39 @@ public class InstitutionController {
         return ResponseEntity.ok(remainingHours);
     }
 
+    @GetMapping("/getCoursesByInstitutionId")
+    public ResponseEntity<List<InstitutionCourseResponseDTO>> getCoursesByInstitutionId(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionId(effectiveInstitutionId));
+    }
+
+    @GetMapping("/getCoursesByInstitutionCode")
+    public ResponseEntity<List<InstitutionCourseResponseDTO>> getCoursesByInstitutionCode(
+            @RequestParam Integer institutionCode,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        Integer effectiveInstitutionCode = getEffectiveInstitutionCode(institutionCode, authToken);
+        return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionCode(effectiveInstitutionCode));
+    }
+
+    @PostMapping("/course")
+    public ResponseEntity<InstitutionCourse> addInstitutionCourse(
+            @Valid @RequestBody InstitutionCourseRequest request,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        assertCanManageCourses(authToken);
+        return ResponseEntity.ok(institutionFacade.addInstitutionCourse(request));
+    }
+
+    @DeleteMapping("/course/{courseId}")
+    public ResponseEntity<?> removeInstitutionCourse(
+            @PathVariable String courseId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        assertCanManageCourses(authToken);
+        institutionFacade.removeInstitutionCourse(courseId);
+        return ResponseEntity.ok("Curso removido com sucesso.");
+    }
+
     private String getEffectiveInstitutionId(String requestedInstitutionId, String authToken) {
         Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
         if (isGlobalAccessRole(authenticatedEmployee.getRole())) {
@@ -110,6 +147,15 @@ public class InstitutionController {
         }
 
         return authenticatedEmployee.getInstitution().getId();
+    }
+
+    private Integer getEffectiveInstitutionCode(Integer requestedInstitutionCode, String authToken) {
+        Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
+        if (isGlobalAccessRole(authenticatedEmployee.getRole())) {
+            return requestedInstitutionCode;
+        }
+
+        return authenticatedEmployee.getInstitution().getInstitutionCode();
     }
 
     private Employee getAuthenticatedEmployee(String authToken) {
@@ -128,5 +174,12 @@ public class InstitutionController {
 
     private boolean isGlobalAccessRole(Role role) {
         return role == Role.ADMIN || role == Role.DEV;
+    }
+
+    private void assertCanManageCourses(String authToken) {
+        Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
+        if (authenticatedEmployee.getRole() != Role.DEV && authenticatedEmployee.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("Acesso negado para gerenciar cursos.");
+        }
     }
 }

@@ -5,11 +5,14 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import br.com.cps.apihae.adapter.dto.request.InstitutionCreateRequest;
+import br.com.cps.apihae.adapter.dto.request.InstitutionCourseRequest;
 import br.com.cps.apihae.adapter.dto.request.InstitutionUpdateRequest;
+import br.com.cps.apihae.adapter.dto.response.InstitutionCourseResponseDTO;
 import br.com.cps.apihae.adapter.dto.response.InstitutionResponseDTO;
 import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Hae;
 import br.com.cps.apihae.domain.entity.Institution;
+import br.com.cps.apihae.domain.entity.InstitutionCourse;
 import br.com.cps.apihae.useCase.service.Hae.ShowHae;
 import br.com.cps.apihae.useCase.service.Institution.ManageInstitution;
 import br.com.cps.apihae.useCase.service.Institution.ShowInstitution;
@@ -62,6 +65,22 @@ public class InstitutionFacade {
 
     public List<Hae> getHaesByInstitutionId(String institutionId) {
         return showInstitution.getHaesByInstitutionId(institutionId);
+    }
+
+    public List<InstitutionCourseResponseDTO> getCoursesByInstitutionId(String institutionId) {
+        return showInstitution.getCoursesByInstitutionId(institutionId);
+    }
+
+    public List<InstitutionCourseResponseDTO> getCoursesByInstitutionCode(Integer institutionCode) {
+        return showInstitution.getCoursesByInstitutionCode(institutionCode);
+    }
+
+    public InstitutionCourse addInstitutionCourse(InstitutionCourseRequest request) {
+        return manageInstitution.addInstitutionCourse(request);
+    }
+
+    public void removeInstitutionCourse(String courseId) {
+        manageInstitution.removeInstitutionCourse(courseId);
     }
 
 }
