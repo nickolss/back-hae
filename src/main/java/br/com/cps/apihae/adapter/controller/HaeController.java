@@ -16,13 +16,18 @@ import br.com.cps.apihae.adapter.dto.response.HaeDetailDTO;
 import br.com.cps.apihae.adapter.dto.response.HaeHoursResponseDTO;
 import br.com.cps.apihae.adapter.dto.response.HaeResponseDTO;
 import br.com.cps.apihae.adapter.facade.HaeFacade;
+import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Hae;
 import br.com.cps.apihae.domain.enums.HaeType;
+import br.com.cps.apihae.domain.enums.Role;
 import br.com.cps.apihae.domain.enums.Status;
+import br.com.cps.apihae.useCase.Interface.IEmployeeRepository;
+import br.com.cps.apihae.useCase.util.JWTUtils;
 import jakarta.validation.Valid;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +38,8 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Hae", description = "Endpoints para manipular HAEs (Horas de Atividades Específicas)")
 public class HaeController {
     private final HaeFacade haeFacade;
+    private final JWTUtils jwtUtils;
+    private final IEmployeeRepository employeeRepository;
 
     @PostMapping("/create")
     public ResponseEntity<Object> createHae(@Valid @RequestBody HaeRequest request) {
@@ -40,8 +47,14 @@ public class HaeController {
     }
 
     @GetMapping("/getHaeById/{id}")
-    public ResponseEntity<HaeDetailDTO> getHaeById(@PathVariable String id) {
-        return ResponseEntity.ok(haeFacade.getHaeById(id));
+    public ResponseEntity<HaeDetailDTO> getHaeById(
+            @PathVariable String id,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
+        String userInstitutionId = isGlobalAccessRole(authenticatedEmployee.getRole())
+                ? null
+                : authenticatedEmployee.getInstitution().getId();
+        return ResponseEntity.ok(haeFacade.getHaeById(id, userInstitutionId));
     }
 
     @DeleteMapping("/delete/{id}")
@@ -51,18 +64,30 @@ public class HaeController {
     }
 
     @GetMapping("/employee/{id}")
-    public ResponseEntity<List<Hae>> getHaesByEmployeeId(@PathVariable String id) {
+    public ResponseEntity<List<Hae>> getHaesByEmployeeId(
+            @PathVariable String id,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        assertEmployeeInstitutionScope(id, authToken);
         return ResponseEntity.ok(haeFacade.getHaesByEmployeeId(id));
     }
 
     @GetMapping("/getHaesByEmployeeIdWithLimit/{employeeId}")
-    public ResponseEntity<List<Hae>> getHaesByEmployeeIdWithLimit(@PathVariable String employeeId) {
+    public ResponseEntity<List<Hae>> getHaesByEmployeeIdWithLimit(
+            @PathVariable String employeeId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        assertEmployeeInstitutionScope(employeeId, authToken);
         return ResponseEntity.ok(haeFacade.getHaesByEmployeeIdWithLimit(employeeId));
     }
 
     @GetMapping("/getAll")
-    public ResponseEntity<List<HaeResponseDTO>> getAllHaes() {
-        return ResponseEntity.ok(haeFacade.getAllHaes());
+    public ResponseEntity<List<HaeResponseDTO>> getAllHaes(
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getAllHaes());
+        }
+
+        return ResponseEntity.ok(haeFacade.getHaesByInstitutionId(scopeInstitutionId));
     }
 
     @PutMapping("/change-status/{id}")
@@ -72,18 +97,39 @@ public class HaeController {
     }
 
     @GetMapping("/getHaesByProfessor/{professorId}")
-    public ResponseEntity<List<HaeResponseDTO>> getHaesByProfessor(@PathVariable String professorId) {
+    public ResponseEntity<List<HaeResponseDTO>> getHaesByProfessor(
+            @PathVariable String professorId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        assertEmployeeInstitutionScope(professorId, authToken);
         return ResponseEntity.ok(haeFacade.getHaesByProfessorId(professorId));
     }
 
     @GetMapping("/getHaesByCourse/{course}")
-    public ResponseEntity<List<HaeResponseDTO>> getHaesByCourse(@PathVariable String course) {
-        return ResponseEntity.ok(haeFacade.getHaesByCourse(course));
+    public ResponseEntity<List<HaeResponseDTO>> getHaesByCourse(
+            @PathVariable String course,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getHaesByCourse(course));
+        }
+
+        return ResponseEntity.ok(haeFacade.advancedHaeSearch(scopeInstitutionId, course, null, null, null));
     }
 
     @GetMapping("/getHaesByType/{haeType}")
-    public ResponseEntity<?> getHaesByType(@PathVariable HaeType haeType) {
-        return ResponseEntity.ok(haeFacade.getHaesByType(haeType));
+    public ResponseEntity<?> getHaesByType(
+            @PathVariable HaeType haeType,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getHaesByType(haeType));
+        }
+
+        List<Hae> filtered = haeFacade.getHaesByType(haeType).stream()
+                .filter(hae -> hae.getInstitution() != null
+                        && scopeInstitutionId.equals(hae.getInstitution().getId()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(filtered);
     }
 
     @PutMapping("/update/{id}")
@@ -110,26 +156,57 @@ public class HaeController {
 
     @Operation(summary = "Listar HAEs visualizadas", description = "Retorna todas as HAEs que já foram visualizadas")
     @GetMapping("/viewed")
-    public ResponseEntity<List<Hae>> getViewed() {
-        return ResponseEntity.ok(haeFacade.getViewed());
+    public ResponseEntity<List<Hae>> getViewed(
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getViewed());
+        }
+
+        List<Hae> filtered = haeFacade.getViewed().stream()
+                .filter(hae -> hae.getInstitution() != null
+                        && scopeInstitutionId.equals(hae.getInstitution().getId()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(filtered);
     }
 
     @Operation(summary = "Listar HAEs não visualizadas", description = "Retorna todas as HAEs que ainda não foram visualizadas")
     @GetMapping("/not-viewed")
-    public ResponseEntity<List<Hae>> getNotViewed() {
-        return ResponseEntity.ok(haeFacade.getNotViewed());
+    public ResponseEntity<List<Hae>> getNotViewed(
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getNotViewed());
+        }
+
+        List<Hae> filtered = haeFacade.getNotViewed().stream()
+                .filter(hae -> hae.getInstitution() != null
+                        && scopeInstitutionId.equals(hae.getInstitution().getId()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(filtered);
     }
 
     @Operation(summary = "Lista todas as HAEs de uma instituição", description = "Retorna uma lista de HAEs baseada no ID da instituição fornecido.")
     @GetMapping("/institution/{institutionId}")
-    public ResponseEntity<List<HaeResponseDTO>> getHaesByInstitution(@PathVariable String institutionId) {
-        return ResponseEntity.ok(haeFacade.getHaesByInstitutionId(institutionId));
+    public ResponseEntity<List<HaeResponseDTO>> getHaesByInstitution(
+            @PathVariable String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        String effectiveInstitutionId = scopeInstitutionId == null ? institutionId : scopeInstitutionId;
+        return ResponseEntity.ok(haeFacade.getHaesByInstitutionId(effectiveInstitutionId));
     }
 
     @Operation(summary = "Lista todas as HAEs baseado nos status", description = "Retorna uma lista de HAEs baseado no status fornecido.")
     @GetMapping("/getHaeByStatus/{status}")
-    public ResponseEntity<List<HaeResponseDTO>> getHaesByStatus(@PathVariable Status status) {
-        return ResponseEntity.ok(haeFacade.getHaeByStatus(status));
+    public ResponseEntity<List<HaeResponseDTO>> getHaesByStatus(
+            @PathVariable Status status,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return ResponseEntity.ok(haeFacade.getHaeByStatus(status));
+        }
+
+        return ResponseEntity.ok(haeFacade.advancedHaeSearch(scopeInstitutionId, null, null, status, null));
     }
 
     @Operation(summary = "Busca avançada de HAEs", description = "Filtra HAEs por instituição, curso, tipo, status e visualização. Todos os filtros são opcionais.")
@@ -139,9 +216,13 @@ public class HaeController {
             @RequestParam(required = false) String course,
             @RequestParam(required = false) HaeType haeType,
             @RequestParam(required = false) Status status,
-            @RequestParam(required = false) Boolean viewed) {
+            @RequestParam(required = false) Boolean viewed,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
 
-        return ResponseEntity.ok(haeFacade.advancedHaeSearch(institutionId, course, haeType, status, viewed));
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        String effectiveInstitutionId = scopeInstitutionId == null ? institutionId : scopeInstitutionId;
+
+        return ResponseEntity.ok(haeFacade.advancedHaeSearch(effectiveInstitutionId, course, haeType, status, viewed));
     }
 
     @GetMapping("/getAllWeeklyHours")
@@ -156,7 +237,8 @@ public class HaeController {
 
     @Operation(summary = "Solicitar fechamento de HAE", description = "Envia as informações de fechamento de uma HAE baseado no tipo")
     @PostMapping("/request-closure/{haeId}")
-    public ResponseEntity<Object> requestClosure(@PathVariable String haeId, @Valid @RequestBody HaeClosureRequest request) {
+    public ResponseEntity<Object> requestClosure(@PathVariable String haeId,
+            @Valid @RequestBody HaeClosureRequest request) {
         return ResponseEntity.ok(haeFacade.requestClosure(haeId, request));
     }
 
@@ -164,6 +246,48 @@ public class HaeController {
     @GetMapping("/closure-records/{haeId}")
     public ResponseEntity<List<HaeClosureRecordDTO>> getClosureRecords(@PathVariable String haeId) {
         return ResponseEntity.ok(haeFacade.getClosureRecordsByHaeId(haeId));
+    }
+
+    private Employee getAuthenticatedEmployee(String authToken) {
+        if (authToken == null || authToken.isBlank()) {
+            throw new IllegalArgumentException("Usuário não autenticado.");
+        }
+
+        String employeeId = jwtUtils.validateToken(authToken);
+        if (employeeId == null || employeeId.isBlank()) {
+            throw new IllegalArgumentException("Token de autenticação inválido ou expirado.");
+        }
+
+        return employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário autenticado não encontrado."));
+    }
+
+    private boolean isGlobalAccessRole(Role role) {
+        return role == Role.ADMIN || role == Role.DEV;
+    }
+
+    private String getScopeInstitutionId(String authToken) {
+        Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
+        if (isGlobalAccessRole(authenticatedEmployee.getRole())) {
+            return null;
+        }
+
+        return authenticatedEmployee.getInstitution().getId();
+    }
+
+    private void assertEmployeeInstitutionScope(String targetEmployeeId, String authToken) {
+        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (scopeInstitutionId == null) {
+            return;
+        }
+
+        Employee targetEmployee = employeeRepository.findById(targetEmployeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário alvo não encontrado."));
+
+        if (targetEmployee.getInstitution() == null
+                || !scopeInstitutionId.equals(targetEmployee.getInstitution().getId())) {
+            throw new IllegalArgumentException("Acesso negado para usuários de outra instituição.");
+        }
     }
 
 }

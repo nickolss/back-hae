@@ -29,8 +29,8 @@ public class HaeFacade {
         return manageHae.createHae(hae);
     }
 
-    public HaeDetailDTO getHaeById(String id) {
-        return showHae.getHaeById(id);
+    public HaeDetailDTO getHaeById(String id, String institutionId) {
+        return showHae.getHaeById(id, institutionId);
     }
 
     public void deleteHae(String id) {

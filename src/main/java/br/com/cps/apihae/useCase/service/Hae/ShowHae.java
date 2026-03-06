@@ -32,9 +32,16 @@ public class ShowHae {
     private final IHaeClosureRecordRepository closureRecordRepository;
 
     @Transactional(readOnly = true)
-    public HaeDetailDTO getHaeById(String id) {
-        Hae hae = iHaeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("HAE não encontrado com ID: " + id));
+    public HaeDetailDTO getHaeById(String id, String institutionId) {
+        Hae hae;
+        if (institutionId == null || institutionId.isBlank()) {
+            hae = iHaeRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("HAE não encontrado com ID: " + id));
+        } else {
+            hae = iHaeRepository.findByIdAndInstitutionId(id, institutionId)
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("HAE não encontrada para a instituição do usuário."));
+        }
 
         String coordenatorName = "Sem coordenador definido";
 
@@ -191,8 +198,8 @@ public class ShowHae {
         List<Hae> haes = iHaeRepository.findAll();
         /*
          * return haes.stream()
-                .map(hae -> new HaeHoursResponseDTO(hae.getId(), hae.getWeeklyHours()))
-                .collect(Collectors.toList());
+         * .map(hae -> new HaeHoursResponseDTO(hae.getId(), hae.getWeeklyHours()))
+         * .collect(Collectors.toList());
          */
         return haes.stream()
                 .mapToInt(Hae::getWeeklyHours)
@@ -211,7 +218,7 @@ public class ShowHae {
         if (!iHaeRepository.existsById(haeId)) {
             throw new IllegalArgumentException("HAE não encontrado com ID: " + haeId);
         }
-        
+
         return closureRecordRepository.findByHaeId(haeId)
                 .stream()
                 .map(HaeClosureRecordDTO::new)

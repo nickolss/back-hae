@@ -35,6 +35,8 @@ public interface IHaeRepository {
 
     Optional<Hae> findById(String id);
 
+    Optional<Hae> findByIdAndInstitutionId(String id, String institutionId);
+
     Hae save(Hae hae);
 
     void delete(Hae hae);

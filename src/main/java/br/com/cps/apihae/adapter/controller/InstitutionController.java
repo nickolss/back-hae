@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,7 +17,11 @@ import br.com.cps.apihae.adapter.dto.request.InstitutionCreateRequest;
 import br.com.cps.apihae.adapter.dto.request.InstitutionUpdateRequest;
 import br.com.cps.apihae.adapter.dto.response.InstitutionResponseDTO;
 import br.com.cps.apihae.adapter.facade.InstitutionFacade;
+import br.com.cps.apihae.domain.entity.Employee;
 import br.com.cps.apihae.domain.entity.Institution;
+import br.com.cps.apihae.domain.enums.Role;
+import br.com.cps.apihae.useCase.Interface.IEmployeeRepository;
+import br.com.cps.apihae.useCase.util.JWTUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/institution")
 public class InstitutionController {
     private final InstitutionFacade institutionFacade;
+    private final JWTUtils jwtUtils;
+    private final IEmployeeRepository employeeRepository;
 
     @PostMapping("/create")
     public ResponseEntity<?> createInstitution(@RequestBody InstitutionCreateRequest request) {
@@ -39,8 +46,11 @@ public class InstitutionController {
     }
 
     @GetMapping("/getAvailableHaesCount")
-    public ResponseEntity<Integer> getAvailableHaesCount(@RequestParam String institutionId) {
-        return ResponseEntity.ok(institutionFacade.getAvailableHaesCount(institutionId));
+    public ResponseEntity<Integer> getAvailableHaesCount(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        return ResponseEntity.ok(institutionFacade.getAvailableHaesCount(effectiveInstitutionId));
     }
 
     @PostMapping("/setAvailableHaesCount")
@@ -56,8 +66,11 @@ public class InstitutionController {
     }
 
     @GetMapping("/getInstitutionById")
-    public ResponseEntity<?> getInstitutionById(@RequestParam String institutionId) {
-        return ResponseEntity.ok(institutionFacade.getInstitutionById(institutionId));
+    public ResponseEntity<?> getInstitutionById(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        return ResponseEntity.ok(institutionFacade.getInstitutionById(effectiveInstitutionId));
     }
 
     @GetMapping("/getInstitutionByInstitutionCode")
@@ -66,18 +79,54 @@ public class InstitutionController {
     }
 
     @GetMapping("/getEmployeesByInstitutionId")
-    public ResponseEntity<?> getEmployeesByInstitutionId(@RequestParam String institutionId) {
-        return ResponseEntity.ok(institutionFacade.getEmployeesByInstitutionId(institutionId));
+    public ResponseEntity<?> getEmployeesByInstitutionId(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        return ResponseEntity.ok(institutionFacade.getEmployeesByInstitutionId(effectiveInstitutionId));
     }
 
     @GetMapping("/getHaesByInstitutionId")
-    public ResponseEntity<?> getHaesByInstitutionId(@RequestParam String institutionId) {
-        return ResponseEntity.ok(institutionFacade.getHaesByInstitutionId(institutionId));
+    public ResponseEntity<?> getHaesByInstitutionId(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        return ResponseEntity.ok(institutionFacade.getHaesByInstitutionId(effectiveInstitutionId));
     }
 
     @GetMapping("/getRemainingHours")
-    public ResponseEntity<Integer> getRemainingHours(@RequestParam String institutionId) {
-        int remainingHours = institutionFacade.getRemainingHours(institutionId);
+    public ResponseEntity<Integer> getRemainingHours(
+            @RequestParam String institutionId,
+            @CookieValue(value = "auth_token", required = false) String authToken) {
+        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        int remainingHours = institutionFacade.getRemainingHours(effectiveInstitutionId);
         return ResponseEntity.ok(remainingHours);
+    }
+
+    private String getEffectiveInstitutionId(String requestedInstitutionId, String authToken) {
+        Employee authenticatedEmployee = getAuthenticatedEmployee(authToken);
+        if (isGlobalAccessRole(authenticatedEmployee.getRole())) {
+            return requestedInstitutionId;
+        }
+
+        return authenticatedEmployee.getInstitution().getId();
+    }
+
+    private Employee getAuthenticatedEmployee(String authToken) {
+        if (authToken == null || authToken.isBlank()) {
+            throw new IllegalArgumentException("Usuário não autenticado.");
+        }
+
+        String employeeId = jwtUtils.validateToken(authToken);
+        if (employeeId == null || employeeId.isBlank()) {
+            throw new IllegalArgumentException("Token de autenticação inválido ou expirado.");
+        }
+
+        return employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário autenticado não encontrado."));
+    }
+
+    private boolean isGlobalAccessRole(Role role) {
+        return role == Role.ADMIN || role == Role.DEV;
     }
 }
