@@ -119,7 +119,9 @@ public class InstitutionController {
     public ResponseEntity<List<InstitutionCourseResponseDTO>> getCoursesByInstitutionCode(
             @RequestParam Integer institutionCode,
             @CookieValue(value = "auth_token", required = false) String authToken) {
-        Integer effectiveInstitutionCode = getEffectiveInstitutionCode(institutionCode, authToken);
+        Integer effectiveInstitutionCode = (authToken == null || authToken.isBlank())
+                ? institutionCode
+                : getEffectiveInstitutionCode(institutionCode, authToken);
         return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionCode(effectiveInstitutionCode));
     }
 
