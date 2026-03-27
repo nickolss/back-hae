@@ -110,7 +110,16 @@ public class HaeController {
     public ResponseEntity<List<HaeResponseDTO>> getHaesByProfessor(
             @PathVariable String professorId,
             @CookieValue(value = "auth_token", required = false) String authToken) {
-        assertEmployeeInstitutionScope(professorId, authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getHaesByProfessorId(professorId));
+        }
+
+        try {
+            assertEmployeeInstitutionScope(professorId, authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getHaesByProfessorId(professorId));
+        }
+
         return ResponseEntity.ok(haeFacade.getHaesByProfessorId(professorId));
     }
 
