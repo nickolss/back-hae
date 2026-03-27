@@ -157,13 +157,18 @@ public class HaeController {
         @PathVariable String course,
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getHaesByCourse(course));
+        }
 
-        if (
-            authToken == null ||
-            authToken.isBlank() ||
-            scopeInstitutionId == null
-        ) {
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getHaesByCourse(course));
+        }
+
+        if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getHaesByCourse(course));
         }
 
@@ -183,7 +188,17 @@ public class HaeController {
         @PathVariable HaeType haeType,
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getHaesByType(haeType));
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getHaesByType(haeType));
+        }
+
         if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getHaesByType(haeType));
         }
@@ -242,7 +257,17 @@ public class HaeController {
     public ResponseEntity<List<Hae>> getViewed(
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getViewed());
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getViewed());
+        }
+
         if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getViewed());
         }
@@ -267,7 +292,17 @@ public class HaeController {
     public ResponseEntity<List<Hae>> getNotViewed(
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getNotViewed());
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getNotViewed());
+        }
+
         if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getNotViewed());
         }
@@ -293,7 +328,17 @@ public class HaeController {
         @PathVariable String institutionId,
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getHaesByInstitutionId(institutionId));
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getHaesByInstitutionId(institutionId));
+        }
+
         String effectiveInstitutionId =
             scopeInstitutionId == null ? institutionId : scopeInstitutionId;
         return ResponseEntity.ok(
@@ -310,7 +355,17 @@ public class HaeController {
         @PathVariable Status status,
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getHaeByStatus(status));
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getHaeByStatus(status));
+        }
+
         if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getHaeByStatus(status));
         }
@@ -339,7 +394,15 @@ public class HaeController {
         @RequestParam(required = false) Boolean viewed,
         @CookieValue(value = "auth_token", required = false) String authToken
     ) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        String scopeInstitutionId = null;
+        if (authToken != null && !authToken.isBlank()) {
+            try {
+                scopeInstitutionId = getScopeInstitutionId(authToken);
+            } catch (SecurityException ex) {
+                // Ignore failure and fallback to default or provided institutionId
+            }
+        }
+
         String effectiveInstitutionId =
             scopeInstitutionId == null ? institutionId : scopeInstitutionId;
 
