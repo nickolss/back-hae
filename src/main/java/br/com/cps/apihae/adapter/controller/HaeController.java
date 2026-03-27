@@ -250,16 +250,16 @@ public class HaeController {
 
     private Employee getAuthenticatedEmployee(String authToken) {
         if (authToken == null || authToken.isBlank()) {
-            throw new IllegalArgumentException("Usuário não autenticado.");
+            throw new SecurityException("Usuário não autenticado.");
         }
 
         String employeeId = jwtUtils.validateToken(authToken);
         if (employeeId == null || employeeId.isBlank()) {
-            throw new IllegalArgumentException("Token de autenticação inválido ou expirado.");
+            throw new SecurityException("Token de autenticação inválido ou expirado.");
         }
 
         return employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário autenticado não encontrado."));
+                .orElseThrow(() -> new SecurityException("Usuário autenticado não encontrado."));
     }
 
     private boolean isGlobalAccessRole(Role role) {

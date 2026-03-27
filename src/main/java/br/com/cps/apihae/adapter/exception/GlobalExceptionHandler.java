@@ -69,6 +69,13 @@ public class GlobalExceptionHandler {
         return Collections.singletonMap("mensagem", ex.getMessage());
     }
 
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(SecurityException.class)
+    public Map<String, String> handleSecurityException(SecurityException ex) {
+        log.warn("SecurityException:", ex);
+        return Collections.singletonMap("mensagem", ex.getMessage());
+    }
+
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
     public Map<String, String> handleAllUncaughtExceptions(Exception ex) {

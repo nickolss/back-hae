@@ -1,28 +1,32 @@
 package br.com.cps.apihae.useCase.util;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.ResponseCookie;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class CookieUtils {
 
-    public void CreateCookies( HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("auth_token", token);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setMaxAge(60 * 60 * 24 * 30);
-        response.addCookie(cookie);
+    public void CreateCookies(HttpServletResponse response, String token) {
+        ResponseCookie cookie = ResponseCookie.from("auth_token", token)
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .maxAge(60L * 60 * 24 * 30)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     public void DeleteCookies(HttpServletResponse response) {
-        Cookie cookie = new Cookie("auth_token", null);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from("auth_token", "")
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 }
