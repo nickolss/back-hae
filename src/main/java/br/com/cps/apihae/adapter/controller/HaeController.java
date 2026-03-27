@@ -82,7 +82,17 @@ public class HaeController {
     @GetMapping("/getAll")
     public ResponseEntity<List<HaeResponseDTO>> getAllHaes(
             @CookieValue(value = "auth_token", required = false) String authToken) {
-        String scopeInstitutionId = getScopeInstitutionId(authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(haeFacade.getAllHaes());
+        }
+
+        String scopeInstitutionId;
+        try {
+            scopeInstitutionId = getScopeInstitutionId(authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(haeFacade.getAllHaes());
+        }
+
         if (scopeInstitutionId == null) {
             return ResponseEntity.ok(haeFacade.getAllHaes());
         }

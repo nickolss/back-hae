@@ -2,6 +2,7 @@ package br.com.cps.apihae.adapter.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -74,6 +75,13 @@ public class GlobalExceptionHandler {
     public Map<String, String> handleSecurityException(SecurityException ex) {
         log.warn("SecurityException:", ex);
         return Collections.singletonMap("mensagem", ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Map<String, String> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.warn("NoResourceFoundException:", ex);
+        return Collections.singletonMap("mensagem", "Recurso não encontrado.");
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
