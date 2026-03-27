@@ -111,7 +111,17 @@ public class InstitutionController {
     public ResponseEntity<List<InstitutionCourseResponseDTO>> getCoursesByInstitutionId(
             @RequestParam String institutionId,
             @CookieValue(value = "auth_token", required = false) String authToken) {
-        String effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionId(institutionId));
+        }
+
+        String effectiveInstitutionId;
+        try {
+            effectiveInstitutionId = getEffectiveInstitutionId(institutionId, authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionId(institutionId));
+        }
+
         return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionId(effectiveInstitutionId));
     }
 
@@ -119,9 +129,17 @@ public class InstitutionController {
     public ResponseEntity<List<InstitutionCourseResponseDTO>> getCoursesByInstitutionCode(
             @RequestParam Integer institutionCode,
             @CookieValue(value = "auth_token", required = false) String authToken) {
-        Integer effectiveInstitutionCode = (authToken == null || authToken.isBlank())
-                ? institutionCode
-                : getEffectiveInstitutionCode(institutionCode, authToken);
+        if (authToken == null || authToken.isBlank()) {
+            return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionCode(institutionCode));
+        }
+
+        Integer effectiveInstitutionCode;
+        try {
+            effectiveInstitutionCode = getEffectiveInstitutionCode(institutionCode, authToken);
+        } catch (SecurityException ex) {
+            return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionCode(institutionCode));
+        }
+
         return ResponseEntity.ok(institutionFacade.getCoursesByInstitutionCode(effectiveInstitutionCode));
     }
 
