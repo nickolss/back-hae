@@ -2,6 +2,8 @@ package br.com.cps.apihae.adapter.facade;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import br.com.cps.apihae.adapter.dto.request.EmployeeCreateByDiretorOrAdmRequest;
@@ -19,8 +21,8 @@ public class EmployeeFacade {
     private final ShowEmployee showEmployee;
     private final ManageEmployee manageEmployee;
     
-    public List<EmployeeResponseDTO> getAllEmployees() {
-        return showEmployee.getAllEmployees();
+    public Page<EmployeeResponseDTO> getAllEmployees(Pageable pageable, String name) {
+        return showEmployee.getAllEmployees(pageable, name);
     }
     
     public List<EmployeeSummaryDTO> getEmployeeSummaries(Role role) {

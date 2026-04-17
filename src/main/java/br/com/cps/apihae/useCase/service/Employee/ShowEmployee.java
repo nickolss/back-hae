@@ -15,6 +15,9 @@ import br.com.cps.apihae.useCase.Interface.IHaeRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @RequiredArgsConstructor
 @Service
 public class ShowEmployee {
@@ -23,12 +26,16 @@ public class ShowEmployee {
     private final IHaeRepository iHaeRepository;
 
     @Transactional(readOnly = true)
-    public List<EmployeeResponseDTO> getAllEmployees() {
-        List<Employee> employees = iEmployeeRepository.findAll();
+    public Page<EmployeeResponseDTO> getAllEmployees(Pageable pageable, String name) {
+        Page<Employee> employees;
 
-        return employees.stream()
-            .map(EmployeeResponseDTO::new)
-            .collect(Collectors.toList());
+        if (name != null && !name.isBlank()) {
+            employees = iEmployeeRepository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            employees = iEmployeeRepository.findAll(pageable);
+        }
+
+        return employees.map(EmployeeResponseDTO::new);
     }
 
     @Transactional(readOnly = true)

@@ -3,6 +3,9 @@ package br.com.cps.apihae.adapter.controller;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,8 +37,12 @@ public class EmployeeController {
     private final EmployeeFacade employeeFacade;
 
     @GetMapping("/getAllEmployee")
-    public ResponseEntity<List<EmployeeResponseDTO>> getAllEmployees() {
-        return ResponseEntity.ok(employeeFacade.getAllEmployees());
+    public ResponseEntity<Page<EmployeeResponseDTO>> getAllEmployees(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(employeeFacade.getAllEmployees(pageable, name));
     }
 
     @GetMapping("/getAllByRole/{role}")
