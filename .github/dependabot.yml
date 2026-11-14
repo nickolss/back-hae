@@ -1,0 +1,36 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      spring:
+        patterns: ["org.springframework*", "org.springdoc*"]
+      test:
+        patterns: ["org.junit*", "org.mockito*", "org.assertj*", "org.testcontainers*", "com.tngtech.archunit*"]
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns: ["*"]

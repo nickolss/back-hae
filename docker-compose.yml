@@ -1,0 +1,41 @@
+# Ambiente de desenvolvimento local:
+#   docker compose up -d                 -> Postgres + Mailpit (caixa de e-mail em http://localhost:8025)
+#   SPRING_PROFILES_ACTIVE=dev ./mvnw -pl hae-bootstrap -am spring-boot:run
+# Para testar a imagem nativa completa:  docker compose --profile app up --build
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hae
+      POSTGRES_USER: hae
+      POSTGRES_PASSWORD: hae
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hae -d hae"]
+      interval: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    profiles: ["app"]
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DATABASE_URL: jdbc:postgresql://postgres:5432/hae
+      SMTP_HOST: mailpit
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

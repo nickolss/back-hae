@@ -1,19 +1,10 @@
-# Node modules
-**/node_modules
-
-# Environment variables
-**/env.properties
-
-# Package lock
-**/package-lock.json
-**/yarn.lock
-
-# Arquivos temporários e de cache
+target/
+*.iml
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+env.properties
 *.log
-*.tmp
-*.sqlite
-*.db
-
-**/target
-
-**/.vscode
+.DS_Store
