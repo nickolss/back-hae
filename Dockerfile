@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 # Runtime: distroless (sem shell nem gerenciador de pacotes), usuário não-root.
 # O binário é "mostly static": depende apenas da glibc.
 # ----------------------------------------------------------------------------
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/base-debian13:nonroot
 LABEL org.opencontainers.image.title="hae-api" \
       org.opencontainers.image.description="API do Sistema de HAEs (Fatec/CPS) — Spring Boot nativo" \
       org.opencontainers.image.source="https://github.com/nickolss/back-hae" \
