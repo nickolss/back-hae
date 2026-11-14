@@ -12,5 +12,20 @@
 
     <artifactId>hae-domain</artifactId>
     <name>HAE :: Domain</name>
-    <description>Modelo de domínio puro (sem frameworks).</description>
+    <description>
+        Núcleo da aplicação, sem Spring: entidades e regras de negócio (pacote domain) e casos de uso com suas
+        portas de saída (pacote application).
+    </description>
+
+    <dependencies>
+        <!-- Apenas APIs padrão: anotação de transação (JTA) e fachada de log. -->
+        <dependency>
+            <groupId>jakarta.transaction</groupId>
+            <artifactId>jakarta.transaction-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

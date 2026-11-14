@@ -1,7 +1,7 @@
 # Ambiente de desenvolvimento local. Credenciais vêm do arquivo .env (não versionado):
 #   ./scripts/dev-env.sh                 -> gera .env com valores aleatórios (uma vez)
 #   docker compose up -d                 -> Postgres + Mailpit (caixa de e-mail em http://localhost:8025)
-#   set -a; . ./.env; set +a; ./mvnw -pl hae-bootstrap -am spring-boot:run
+#   set -a; . ./.env; set +a; ./mvnw -pl hae-spring -am spring-boot:run
 # Para testar a imagem nativa completa:  docker compose --profile app up --build
 services:
   postgres:

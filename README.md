@@ -5,22 +5,23 @@ API REST do sistema de HAEs da Fatec/CPS. Spring Boot 4 + Java 25, compilada com
 
 ## Arquitetura
 
-Projeto Maven **multimódulo** seguindo Clean Architecture — a regra de dependência é verificada por testes
-ArchUnit (`hae-bootstrap/src/test/.../ArchitectureTest.java`):
+Projeto Maven com **dois módulos**, seguindo Clean Architecture. A regra de dependência entre camadas é verificada
+por testes ArchUnit (`hae-spring/src/test/.../ArchitectureTest.java`):
 
 ```
-hae-bootstrap ──► hae-web ─────────┐
-      │                            ▼
-      └────────► hae-infrastructure ──► hae-application ──► hae-domain
+hae-spring  ──depende de──►  hae-domain
+(Spring Boot)                (Java puro)
 ```
 
-| Módulo | Responsabilidade | Frameworks |
-|---|---|---|
-| `hae-domain` | Entidades, objetos de valor, regras (máquina de estados da HAE, limite de horas, semestre) | nenhum |
-| `hae-application` | Casos de uso (`@UseCase`), portas de saída, autorização por papel/instituição | apenas `jakarta.transaction` |
-| `hae-infrastructure` | JPA/Flyway (PostgreSQL), SMTP, Cloudinary (REST assinado), JWT, BCrypt | Spring Data, Spring Security crypto |
-| `hae-web` | Controllers REST `/api/v1`, DTOs, segurança HTTP, Problem Details, OpenAPI | Spring MVC, Spring Security |
-| `hae-bootstrap` | Composição, configuração, jobs, build nativo | Spring Boot |
+| Módulo | Pacotes | Responsabilidade | Frameworks |
+|---|---|---|---|
+| `hae-domain` | `domain` | Entidades, objetos de valor e regras (máquina de estados da HAE, limite de horas, semestre) | nenhum |
+| | `application` | Casos de uso (`@UseCase`), portas de saída, autorização por papel/instituição | apenas `jakarta.transaction` |
+| `hae-spring` | `infrastructure` | JPA/Flyway (PostgreSQL), SMTP, Cloudinary (REST assinado), JWT, BCrypt | Spring Data, Spring Security |
+| | `web` | Controllers REST `/api/v1`, DTOs, segurança HTTP, Problem Details, OpenAPI | Spring MVC, Spring Security |
+| | `bootstrap` | Composição, configuração, jobs, build nativo | Spring Boot |
+
+Dentro de `hae-spring`, `web` não acessa `infrastructure` diretamente: ambos só conversam com o núcleo.
 
 ### Fluxo da HAE
 
@@ -38,7 +39,7 @@ Requisitos: Java 25 (GraalVM 25 para build nativo), Docker.
 ./scripts/dev-env.sh                                  # gera .env com credenciais aleatórias (não versionado)
 docker compose up -d                                  # Postgres + Mailpit (e-mails em http://localhost:8025)
 set -a; . ./.env; set +a
-./mvnw -pl hae-bootstrap -am spring-boot:run
+./mvnw -pl hae-spring -am spring-boot:run
 ```
 
 - API: http://localhost:8080/api/v1 · Swagger: http://localhost:8080/swagger-ui.html
@@ -54,7 +55,7 @@ set -a; . ./.env; set +a
 ### Imagem nativa
 
 ```bash
-./mvnw -Pnative -DskipTests package && ./hae-bootstrap/target/hae-api
+./mvnw -Pnative -DskipTests package && ./hae-spring/target/hae-api
 docker build -t hae-api .            # build nativo dentro do contêiner
 ```
 

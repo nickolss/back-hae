@@ -20,10 +20,7 @@
 
     <modules>
         <module>hae-domain</module>
-        <module>hae-application</module>
-        <module>hae-infrastructure</module>
-        <module>hae-web</module>
-        <module>hae-bootstrap</module>
+        <module>hae-spring</module>
     </modules>
 
     <properties>
@@ -39,21 +36,6 @@
             <dependency>
                 <groupId>br.com.cps.hae</groupId>
                 <artifactId>hae-domain</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>br.com.cps.hae</groupId>
-                <artifactId>hae-application</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>br.com.cps.hae</groupId>
-                <artifactId>hae-infrastructure</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>br.com.cps.hae</groupId>
-                <artifactId>hae-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

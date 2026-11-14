@@ -9,15 +9,9 @@ WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 COPY hae-domain/pom.xml hae-domain/
-COPY hae-application/pom.xml hae-application/
-COPY hae-infrastructure/pom.xml hae-infrastructure/
-COPY hae-web/pom.xml hae-web/
-COPY hae-bootstrap/pom.xml hae-bootstrap/
+COPY hae-spring/pom.xml hae-spring/
 COPY hae-domain/src hae-domain/src
-COPY hae-application/src hae-application/src
-COPY hae-infrastructure/src hae-infrastructure/src
-COPY hae-web/src hae-web/src
-COPY hae-bootstrap/src hae-bootstrap/src
+COPY hae-spring/src hae-spring/src
 
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -ntp -Pnative -DskipTests -Dnative.linking=--static-nolibc package
@@ -33,7 +27,7 @@ LABEL org.opencontainers.image.title="hae-api" \
       org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
-COPY --from=build --chown=nonroot:nonroot /workspace/hae-bootstrap/target/hae-api /app/hae-api
+COPY --from=build --chown=nonroot:nonroot /workspace/hae-spring/target/hae-api /app/hae-api
 
 USER nonroot:nonroot
 ENV PORT=8080
