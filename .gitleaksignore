@@ -1,0 +1,6 @@
+# Falsos positivos revisados manualmente em 2026-11-14 (valores fictícios de teste/smoke test,
+# substituídos por segredos gerados em tempo de execução no commit 13da7c1). Não adicione entradas
+# sem revisão: qualquer outro achado continua bloqueando o CI.
+c42e63b1041d0a78b4ebc1a4a55a1ed1e5dd5d4b:.github/workflows/deploy.yml:generic-api-key:54
+c42e63b1041d0a78b4ebc1a4a55a1ed1e5dd5d4b:hae-bootstrap/src/test/java/br/com/cps/hae/ApiIntegrationTest.java:generic-api-key:41
+c42e63b1041d0a78b4ebc1a4a55a1ed1e5dd5d4b:hae-bootstrap/src/test/java/br/com/cps/hae/ApiIntegrationTest.java:generic-api-key:217

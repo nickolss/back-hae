@@ -1,0 +1,131 @@
+name: Deploy
+
+# Fluxo: testes -> imagem nativa -> scan de vulnerabilidades -> Docker Hub -> Deploy Hook do Render -> health check
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  # usuário do Docker Hub: aceita variável (preferível, não é segredo) ou secret
+  DOCKERHUB_USER: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+  IMAGE: docker.io/${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}/hae-api
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+  image:
+    name: Imagem nativa + scan + push
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build (GraalVM native) para verificação
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: hae-api:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test do binário (sobe e responde /actuator/health)
+        run: |
+          # credenciais efêmeras, geradas a cada execução
+          DB_PASS="$(openssl rand -hex 24)"
+          docker network create smoke
+          docker run -d --name db --network smoke -e POSTGRES_DB=hae -e POSTGRES_USER=hae -e POSTGRES_PASSWORD="$DB_PASS" postgres:17-alpine
+          for _ in $(seq 1 30); do docker exec db pg_isready -U hae -d hae && break; sleep 1; done
+          docker run -d --name api --network smoke -p 8080:8080 \
+            -e DATABASE_URL=jdbc:postgresql://db:5432/hae -e DATABASE_USERNAME=hae -e DATABASE_PASSWORD="$DB_PASS" \
+            -e JWT_SECRET="$(openssl rand -hex 32)" hae-api:scan
+          for _ in $(seq 1 30); do curl -fsS http://localhost:8080/actuator/health && exit 0; sleep 1; done
+          docker logs api; exit 1
+
+      - name: Scan de vulnerabilidades (Grype)
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: hae-api:scan
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          output-format: table
+
+      - name: SBOM (SPDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: hae-api:scan
+          format: spdx-json
+          artifact-name: hae-api-sbom.spdx.json
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - name: Push para o Docker Hub
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          provenance: mode=max
+          sbom: true
+
+  render:
+    name: Deploy no Render
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.RENDER_SERVICE_URL }}
+    steps:
+      - name: Dispara o Deploy Hook com a imagem exata (digest)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_REF: ${{ env.IMAGE }}@${{ needs.image.outputs.digest }}
+        run: |
+          test -n "$HOOK" || { echo "::error::Secret RENDER_DEPLOY_HOOK_URL não configurado"; exit 1; }
+          encoded=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["IMAGE_REF"], safe=""))')
+          curl -fsS -X POST "${HOOK}&imgURL=${encoded}" -o /dev/null -w "Render respondeu HTTP %{http_code}\n"
+
+      - name: Aguarda a nova versão ficar saudável
+        if: vars.RENDER_SERVICE_URL != ''
+        env:
+          URL: ${{ vars.RENDER_SERVICE_URL }}
+        run: |
+          sleep 30
+          for _ in $(seq 1 40); do
+            if curl -fsS "$URL/actuator/health" | grep -q '"UP"'; then echo "Saudável"; exit 0; fi
+            sleep 15
+          done
+          echo "::error::Serviço não ficou saudável a tempo"; exit 1
