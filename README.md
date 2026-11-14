@@ -35,12 +35,15 @@ Edição pelo professor (PENDENTE|REPROVADO|APROVADO) volta para PENDENTE.
 Requisitos: Java 25 (GraalVM 25 para build nativo), Docker.
 
 ```bash
+./scripts/dev-env.sh                                  # gera .env com credenciais aleatórias (não versionado)
 docker compose up -d                                  # Postgres + Mailpit (e-mails em http://localhost:8025)
-SPRING_PROFILES_ACTIVE=dev ./mvnw -pl hae-bootstrap -am spring-boot:run
+set -a; . ./.env; set +a
+./mvnw -pl hae-bootstrap -am spring-boot:run
 ```
 
 - API: http://localhost:8080/api/v1 · Swagger: http://localhost:8080/swagger-ui.html
-- Admin de desenvolvimento: `admin@hae.local` / `admin12345`
+- Admin local: `admin@hae.local`, senha em `INITIAL_ADMIN_PASSWORD` no `.env`
+- **Nenhum segredo fica no código**: sem `JWT_SECRET` a aplicação não sobe (inclusive no perfil `dev`).
 
 ### Testes
 
