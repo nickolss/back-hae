@@ -48,11 +48,11 @@ jobs:
         run: |
           docker network create smoke
           docker run -d --name db --network smoke -e POSTGRES_DB=hae -e POSTGRES_USER=hae -e POSTGRES_PASSWORD=hae postgres:17-alpine
-          for i in $(seq 1 30); do docker exec db pg_isready -U hae -d hae && break; sleep 1; done
+          for _ in $(seq 1 30); do docker exec db pg_isready -U hae -d hae && break; sleep 1; done
           docker run -d --name api --network smoke -p 8080:8080 \
             -e DATABASE_URL=jdbc:postgresql://db:5432/hae -e DATABASE_USERNAME=hae -e DATABASE_PASSWORD=hae \
             -e JWT_SECRET=smoke-test-secret-0123456789abcdef0123 hae-api:scan
-          for i in $(seq 1 30); do curl -fsS http://localhost:8080/actuator/health && exit 0; sleep 1; done
+          for _ in $(seq 1 30); do curl -fsS http://localhost:8080/actuator/health && exit 0; sleep 1; done
           docker logs api; exit 1
 
       - name: Scan de vulnerabilidades (Grype)
@@ -120,7 +120,7 @@ jobs:
           URL: ${{ vars.RENDER_SERVICE_URL }}
         run: |
           sleep 30
-          for i in $(seq 1 40); do
+          for _ in $(seq 1 40); do
             if curl -fsS "$URL/actuator/health" | grep -q '"UP"'; then echo "Saudável"; exit 0; fi
             sleep 15
           done
