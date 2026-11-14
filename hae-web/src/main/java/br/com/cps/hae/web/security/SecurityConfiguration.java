@@ -12,7 +12,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
@@ -94,8 +96,13 @@ public class SecurityConfiguration {
      */
     private static BearerTokenAuthenticationFilter sessionFilter(WebProperties properties, JwtDecoder jwtDecoder,
             ProblemAuthenticationEntryPoint problems) {
-        var filter = new BearerTokenAuthenticationFilter(new ProviderManager(new JwtAuthenticationProvider(jwtDecoder)));
-        filter.setBearerTokenResolver(new CookieBearerTokenResolver(properties.cookieName()));
+        var resolver = new CookieBearerTokenResolver(properties.cookieName());
+        AuthenticationConverter fromCookie = request -> {
+            String token = resolver.resolve(request);
+            return token == null ? null : new BearerTokenAuthenticationToken(token);
+        };
+        var filter = new BearerTokenAuthenticationFilter(
+                new ProviderManager(new JwtAuthenticationProvider(jwtDecoder)), fromCookie);
         filter.setAuthenticationEntryPoint(problems);
         return filter;
     }

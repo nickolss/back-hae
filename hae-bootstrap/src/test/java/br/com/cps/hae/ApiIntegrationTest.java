@@ -52,6 +52,8 @@ class ApiIntegrationTest {
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
 
+    private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
+
     /** Credenciais geradas a cada execução: nenhum segredo fixo no código. */
     static final String ADMIN_PASSWORD = randomSecret();
     static final String TEMP_PASSWORD = randomSecret();
@@ -64,7 +66,7 @@ class ApiIntegrationTest {
 
     static String randomSecret() {
         byte[] bytes = new byte[32];
-        new java.security.SecureRandom().nextBytes(bytes);
+        RANDOM.nextBytes(bytes);
         return java.util.HexFormat.of().formatHex(bytes);
     }
 

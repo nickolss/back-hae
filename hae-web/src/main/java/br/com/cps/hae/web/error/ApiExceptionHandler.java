@@ -41,11 +41,11 @@ class ApiExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException ex) {
         HttpStatus status = switch (ex) {
-            case NotFoundException ignored -> HttpStatus.NOT_FOUND;
-            case ConflictException ignored -> HttpStatus.CONFLICT;
-            case AccessDeniedException ignored -> HttpStatus.FORBIDDEN;
-            case AuthenticationFailedException ignored -> HttpStatus.UNAUTHORIZED;
-            case BusinessRuleViolationException ignored -> HttpStatus.UNPROCESSABLE_CONTENT;
+            case NotFoundException _ -> HttpStatus.NOT_FOUND;
+            case ConflictException _ -> HttpStatus.CONFLICT;
+            case AccessDeniedException _ -> HttpStatus.FORBIDDEN;
+            case AuthenticationFailedException _ -> HttpStatus.UNAUTHORIZED;
+            case BusinessRuleViolationException _ -> HttpStatus.UNPROCESSABLE_CONTENT;
             default -> HttpStatus.BAD_REQUEST;
         };
         return problem(status, ex.getMessage());
@@ -70,12 +70,12 @@ class ApiExceptionHandler {
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ProblemDetail tooLarge(MaxUploadSizeExceededException ex) {
+    ProblemDetail tooLarge() {
         return problem(HttpStatus.CONTENT_TOO_LARGE, "O arquivo deve ter no máximo 5 MB.");
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    ProblemDetail concurrentUpdate(OptimisticLockingFailureException ex) {
+    ProblemDetail concurrentUpdate() {
         return problem(HttpStatus.CONFLICT,
                 "Este registro foi alterado por outra pessoa. Recarregue a página e tente novamente.");
     }
@@ -87,12 +87,12 @@ class ApiExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    ProblemDetail notFound(NoResourceFoundException ex) {
+    ProblemDetail notFound() {
         return problem(HttpStatus.NOT_FOUND, "Recurso não encontrado.");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    ProblemDetail methodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+    ProblemDetail methodNotAllowed() {
         return problem(HttpStatus.METHOD_NOT_ALLOWED, "Método não suportado.");
     }
 

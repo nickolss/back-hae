@@ -108,13 +108,16 @@ class CloudinaryFileStorage implements FileStorage {
         }
     }
 
-    /** Assinatura exigida pela API do Cloudinary: SHA-1(params ordenados + api_secret). */
+    /**
+     * Assinatura da API do Cloudinary: SHA-256(params ordenados + api_secret). O Cloudinary aceita SHA-1 e SHA-256;
+     * usamos SHA-256 (https://cloudinary.com/documentation/authentication_signatures).
+     */
     private String sign(Map<String, String> sortedParams) {
         String toSign = sortedParams.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&")) + config.apiSecret();
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-1").digest(toSign.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(toSign.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);

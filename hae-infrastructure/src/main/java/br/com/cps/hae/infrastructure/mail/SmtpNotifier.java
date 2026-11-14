@@ -37,7 +37,7 @@ class SmtpNotifier implements Notifier {
     @Override
     public void sendAccountActivation(EmailAddress to, String name, String token) {
         String link = frontend("/ativar-conta#token=" + token);
-        send(to.value(), "Ative sua conta", EmailTemplates.layout("Confirme seu cadastro",
+        send("ativacao", to.value(), "Ative sua conta", EmailTemplates.layout("Confirme seu cadastro",
                 EmailTemplates.paragraph("Olá, " + name + "!")
                         + EmailTemplates.paragraph("Para concluir o cadastro no Sistema de HAEs, confirme seu e-mail."
                                 + " O link expira em 24 horas.")
@@ -49,7 +49,7 @@ class SmtpNotifier implements Notifier {
     @Override
     public void sendPasswordReset(EmailAddress to, String name, String token) {
         String link = frontend("/redefinir-senha#token=" + token);
-        send(to.value(), "Redefinição de senha", EmailTemplates.layout("Redefinição de senha",
+        send("redefinicao-senha", to.value(), "Redefinição de senha", EmailTemplates.layout("Redefinição de senha",
                 EmailTemplates.paragraph("Olá, " + name + ".")
                         + EmailTemplates.paragraph("Recebemos um pedido para redefinir sua senha. O link é válido por"
                                 + " 30 minutos e só pode ser usado uma vez.")
@@ -60,7 +60,7 @@ class SmtpNotifier implements Notifier {
     @Async
     @Override
     public void sendPasswordChanged(EmailAddress to, String name) {
-        send(to.value(), "Sua senha foi alterada", EmailTemplates.layout("Senha alterada",
+        send("senha-alterada", to.value(), "Sua senha foi alterada", EmailTemplates.layout("Senha alterada",
                 EmailTemplates.paragraph("Olá, " + name + ". A senha da sua conta acabou de ser alterada.")
                         + EmailTemplates.paragraph("Se não foi você, redefina a senha imediatamente e avise a"
                                 + " coordenação.")));
@@ -69,7 +69,7 @@ class SmtpNotifier implements Notifier {
     @Async
     @Override
     public void notifyHaeSubmitted(EmailAddress coordinator, HaeNotice notice) {
-        send(coordinator.value(), "Nova HAE para avaliação: " + notice.title(), EmailTemplates.layout(
+        send("hae-enviada", coordinator.value(), "Nova HAE para avaliação: " + notice.title(), EmailTemplates.layout(
                 "HAE aguardando avaliação",
                 EmailTemplates.field("Professor(a)", notice.professorName())
                         + EmailTemplates.field("Curso", notice.courseName())
@@ -86,7 +86,7 @@ class SmtpNotifier implements Notifier {
             case COMPLETO -> "concluída (fechamento aprovado)";
             default -> "atualizada (" + newStatus + ")";
         };
-        send(professor.value(), "Sua HAE foi " + statusLabel, EmailTemplates.layout("HAE " + statusLabel,
+        send("hae-avaliada", professor.value(), "Sua HAE foi " + statusLabel, EmailTemplates.layout("HAE " + statusLabel,
                 EmailTemplates.field("Projeto", notice.title())
                         + (comment == null ? "" : EmailTemplates.field("Comentário", comment))
                         + EmailTemplates.button("Ver HAE", frontend("/haes/" + notice.haeId()))));
@@ -95,7 +95,7 @@ class SmtpNotifier implements Notifier {
     @Async
     @Override
     public void notifyClosureRequested(EmailAddress coordinator, HaeNotice notice) {
-        send(coordinator.value(), "Fechamento de HAE solicitado: " + notice.title(), EmailTemplates.layout(
+        send("fechamento-solicitado", coordinator.value(), "Fechamento de HAE solicitado: " + notice.title(), EmailTemplates.layout(
                 "Fechamento aguardando avaliação",
                 EmailTemplates.field("Professor(a)", notice.professorName())
                         + EmailTemplates.field("Projeto", notice.title())
@@ -105,7 +105,7 @@ class SmtpNotifier implements Notifier {
     @Async
     @Override
     public void sendFeedback(FeedbackMessage message) {
-        send(config.feedbackTo(), "[Feedback " + message.category() + "] " + message.subject(),
+        send("feedback", config.feedbackTo(), "[Feedback " + message.category() + "] " + message.subject(),
                 EmailTemplates.layout("Nova mensagem de suporte",
                         EmailTemplates.field("De", message.fromName() + " <" + message.fromEmail() + ">")
                                 + EmailTemplates.field("Categoria", message.category())
@@ -118,9 +118,13 @@ class SmtpNotifier implements Notifier {
         return base + path;
     }
 
-    private void send(String to, String subject, String html) {
+    /**
+     * @param kind identificador fixo do tipo de e-mail, usado nos logs. O assunto não é registrado porque pode
+     *             conter texto digitado por usuários (evita injeção em logs).
+     */
+    private void send(String kind, String to, String subject, String html) {
         if (to == null || to.isBlank()) {
-            log.warn("E-mail '{}' não enviado: destinatário não configurado", subject);
+            log.warn("E-mail [{}] não enviado: destinatário não configurado", kind);
             return;
         }
         try {
@@ -131,9 +135,9 @@ class SmtpNotifier implements Notifier {
             helper.setSubject(subject.replaceAll("[\\r\\n]", " "));
             helper.setText(html, true);
             sender.send(message);
-            log.info("E-mail '{}' enviado", subject);
+            log.info("E-mail [{}] enviado", kind);
         } catch (MessagingException | MailException e) {
-            log.error("Falha ao enviar e-mail '{}'", subject, e);
+            log.error("Falha ao enviar e-mail [{}]", kind, e);
         }
     }
 }
