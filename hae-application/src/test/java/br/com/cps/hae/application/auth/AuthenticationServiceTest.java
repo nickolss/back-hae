@@ -103,7 +103,7 @@ class AuthenticationServiceTest {
 
     @Test
     void cadastroGuardaApenasHashesEEnviaTokenPorEmail() {
-        var service = registration(new RegistrationSettings("", List.of()));
+        var service = registration(new RegistrationSettings(List.of()));
         service.register(new RegistrationService.RegisterCommand("Ana", "ana@fatec.sp.gov.br", "senhaForte1", 110,
                 course.id()));
         verify(pending).save(org.mockito.ArgumentMatchers.argThat(p -> p.tokenHash().equals("sha:token-123")
@@ -115,7 +115,7 @@ class AuthenticationServiceTest {
     @Test
     void cadastroDeEmailExistenteNaoRevelaExistencia() {
         when(employees.existsByEmail(any())).thenReturn(true);
-        registration(new RegistrationSettings("", List.of())).register(
+        registration(new RegistrationSettings(List.of())).register(
                 new RegistrationService.RegisterCommand("Ana", "ana@fatec.sp.gov.br", "senhaForte1", 110,
                         course.id()));
         verify(notifier, never()).sendAccountActivation(any(), anyString(), anyString());
@@ -123,18 +123,18 @@ class AuthenticationServiceTest {
 
     @Test
     void dominioNaoPermitidoERejeitado() {
-        var service = registration(new RegistrationSettings("", List.of("fatec.sp.gov.br")));
+        var service = registration(new RegistrationSettings(List.of("fatec.sp.gov.br")));
         assertThatThrownBy(() -> service.register(new RegistrationService.RegisterCommand("Ana", "ana@gmail.com",
                 "senhaForte1", 110, course.id()))).isInstanceOf(BusinessRuleViolationException.class);
     }
 
     @Test
-    void ativacaoCriaProfessorEInicia_sessao() {
+    void ativacaoSempreCriaProfessorMesmoComEmailCps() {
         var reg = PendingRegistration.create("Ana", new EmailAddress("ana@cps.sp.gov.br"), "h:x", fatec.id(),
                 course.id(), "sha:token-123", NOW);
         when(pending.findByTokenHash("sha:token-123")).thenReturn(Optional.of(reg));
 
-        var session = registration(new RegistrationSettings("", List.of())).activate("token-123");
+        var session = registration(new RegistrationSettings(List.of())).activate("token-123");
 
         assertThat(session.profile().role()).isEqualTo(Role.PROFESSOR);
         assertThat(session.profile().institution().code()).isEqualTo(110);
@@ -146,7 +146,7 @@ class AuthenticationServiceTest {
         var reg = new PendingRegistration(UUID.randomUUID(), "Ana", new EmailAddress("ana@x.com"), "h", fatec.id(),
                 course.id(), "sha:token-123", NOW.minusSeconds(1));
         when(pending.findByTokenHash("sha:token-123")).thenReturn(Optional.of(reg));
-        assertThatThrownBy(() -> registration(new RegistrationSettings("", List.of())).activate("token-123"))
+        assertThatThrownBy(() -> registration(new RegistrationSettings(List.of())).activate("token-123"))
                 .isInstanceOf(AuthenticationFailedException.class);
     }
 

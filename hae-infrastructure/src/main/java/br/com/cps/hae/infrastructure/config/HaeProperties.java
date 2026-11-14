@@ -28,8 +28,7 @@ public record HaeProperties(Jwt jwt, Mail mail, Cloudinary cloudinary, Registrat
         }
     }
 
-    public record Registration(@DefaultValue("") String coordinatorEmailDomain,
-            @DefaultValue("") List<String> allowedEmailDomains) {
+    public record Registration(@DefaultValue("") List<String> allowedEmailDomains) {
     }
 
     public record Admin(String name, String email, String password) {

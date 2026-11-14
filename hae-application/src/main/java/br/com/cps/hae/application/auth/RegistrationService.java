@@ -110,15 +110,10 @@ public class RegistrationService {
         }
 
         Employee employee = employees.save(Employee.create(registration.name(), registration.email(),
-                registration.passwordHash(), initialRole(registration.email()), registration.institutionId(),
+                registration.passwordHash(), Role.PROFESSOR, registration.institutionId(),
                 registration.courseId(), clock.instant()));
         pending.delete(registration.id());
         return new AuthenticatedSession(profiles.toProfile(employee), sessions.issue(employee));
-    }
-
-    private Role initialRole(EmailAddress email) {
-        String domain = settings.coordinatorEmailDomain();
-        return domain != null && !domain.isBlank() && email.hasDomain(domain) ? Role.COORDENADOR : Role.PROFESSOR;
     }
 
     private void ensureAllowedDomain(EmailAddress email) {

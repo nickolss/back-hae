@@ -1,16 +1,17 @@
 package br.com.cps.hae.application.auth;
 
+import java.util.List;
+
 /**
- * Configuração do cadastro.
+ * Configuração do autocadastro. Toda conta criada por autocadastro recebe o papel PROFESSOR; papéis de gestão
+ * são atribuídos apenas por diretores ou administradores.
  *
- * @param coordinatorEmailDomain se preenchido, e-mails desse domínio recebem o papel COORDENADOR ao ativar a
- *                               conta (comportamento legado); vazio desativa a regra.
- * @param allowedEmailDomains    domínios aceitos no autocadastro (vazio = qualquer domínio).
+ * @param allowedEmailDomains domínios aceitos no autocadastro (vazio = qualquer domínio).
  */
-public record RegistrationSettings(String coordinatorEmailDomain, java.util.List<String> allowedEmailDomains) {
+public record RegistrationSettings(List<String> allowedEmailDomains) {
 
     public RegistrationSettings {
-        allowedEmailDomains = allowedEmailDomains == null ? java.util.List.of()
+        allowedEmailDomains = allowedEmailDomains == null ? List.of()
                 : allowedEmailDomains.stream().filter(d -> d != null && !d.isBlank()).map(String::strip).toList();
     }
 }

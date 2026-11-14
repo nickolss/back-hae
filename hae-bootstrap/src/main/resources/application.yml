@@ -91,7 +91,6 @@ hae:
     api-key: ${CLOUDINARY_API_KEY:}
     api-secret: ${CLOUDINARY_API_SECRET:}
   registration:
-    coordinator-email-domain: ${REGISTRATION_COORDINATOR_DOMAIN:}
     allowed-email-domains: ${REGISTRATION_ALLOWED_DOMAINS:}
   admin:
     name: ${INITIAL_ADMIN_NAME:Administrador}

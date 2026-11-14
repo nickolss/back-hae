@@ -26,7 +26,6 @@ class UseCaseConfiguration {
     @Bean
     RegistrationSettings registrationSettings(HaeProperties properties) {
         var registration = properties.registration();
-        return registration == null ? new RegistrationSettings("", java.util.List.of())
-                : new RegistrationSettings(registration.coordinatorEmailDomain(), registration.allowedEmailDomains());
+        return new RegistrationSettings(registration == null ? null : registration.allowedEmailDomains());
     }
 }
