@@ -19,6 +19,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -38,9 +40,7 @@ import jakarta.servlet.http.Cookie;
  */
 @Testcontainers
 @SpringBootTest(properties = {
-        "hae.jwt.secret=integration-test-secret-0123456789abcdef",
         "hae.admin.email=admin@hae.test",
-        "hae.admin.password=admin-pass-123",
         "hae.web.cookie-name=hae_session",
         "hae.web.cookie-secure=false",
         "hae.web.rate-limit.auth-per-minute=1000",
@@ -51,6 +51,22 @@ class ApiIntegrationTest {
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
+
+    /** Credenciais geradas a cada execução: nenhum segredo fixo no código. */
+    static final String ADMIN_PASSWORD = randomSecret();
+    static final String TEMP_PASSWORD = randomSecret();
+
+    @DynamicPropertySource
+    static void secrets(DynamicPropertyRegistry registry) {
+        registry.add("hae.jwt.secret", ApiIntegrationTest::randomSecret);
+        registry.add("hae.admin.password", () -> ADMIN_PASSWORD);
+    }
+
+    static String randomSecret() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.HexFormat.of().formatHex(bytes);
+    }
 
     @Autowired
     MockMvc mvc;
@@ -101,7 +117,7 @@ class ApiIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        admin = new Browser().login("admin@hae.test", "admin-pass-123");
+        admin = new Browser().login("admin@hae.test", ADMIN_PASSWORD);
     }
 
     @Test
@@ -153,8 +169,8 @@ class ApiIntegrationTest {
         String suffix = String.valueOf(System.nanoTime());
         createEmployee(institutionId, courseId, "prof" + suffix + "@fatec.test", "PROFESSOR");
         createEmployee(institutionId, courseId, "coord" + suffix + "@fatec.test", "COORDENADOR");
-        Browser professor = new Browser().login("prof" + suffix + "@fatec.test", "senha-temp-123");
-        Browser coordinator = new Browser().login("coord" + suffix + "@fatec.test", "senha-temp-123");
+        Browser professor = new Browser().login("prof" + suffix + "@fatec.test", TEMP_PASSWORD);
+        Browser coordinator = new Browser().login("coord" + suffix + "@fatec.test", TEMP_PASSWORD);
 
         // professor não pode listar funcionários
         assertThat(professor.perform(get("/api/v1/employees")).getResponse().getStatus()).isEqualTo(403);
@@ -205,7 +221,7 @@ class ApiIntegrationTest {
         String institutionId = JsonPath.read(inst, "$.id");
         String suffix = String.valueOf(System.nanoTime());
         String profId = createEmployee(institutionId, null, "p" + suffix + "@fatec.test", "PROFESSOR");
-        Browser professor = new Browser().login("p" + suffix + "@fatec.test", "senha-temp-123");
+        Browser professor = new Browser().login("p" + suffix + "@fatec.test", TEMP_PASSWORD);
 
         MvcResult r = professor.json(patch("/api/v1/employees/" + profId), "{\"role\":\"ADMIN\"}");
         assertThat(r.getResponse().getStatus()).isEqualTo(403);
@@ -214,8 +230,9 @@ class ApiIntegrationTest {
     private String createEmployee(String institutionId, String courseId, String email, String role)
             throws Exception {
         MvcResult r = admin.json(post("/api/v1/employees"), """
-                {"name":"Pessoa Teste","email":"%s","role":"%s","institutionId":"%s",%s"temporaryPassword":"senha-temp-123"}"""
-                .formatted(email, role, institutionId, courseId == null ? "" : "\"courseId\":\"" + courseId + "\","));
+                {"name":"Pessoa Teste","email":"%s","role":"%s","institutionId":"%s",%s"temporaryPassword":"%s"}"""
+                .formatted(email, role, institutionId, courseId == null ? "" : "\"courseId\":\"" + courseId + "\",",
+                        TEMP_PASSWORD));
         assertThat(r.getResponse().getStatus()).as(r.getResponse().getContentAsString()).isEqualTo(201);
         return JsonPath.read(r.getResponse().getContentAsString(), "$.id");
     }

@@ -51,7 +51,7 @@ jobs:
           for _ in $(seq 1 30); do docker exec db pg_isready -U hae -d hae && break; sleep 1; done
           docker run -d --name api --network smoke -p 8080:8080 \
             -e DATABASE_URL=jdbc:postgresql://db:5432/hae -e DATABASE_USERNAME=hae -e DATABASE_PASSWORD=hae \
-            -e JWT_SECRET=smoke-test-secret-0123456789abcdef0123 hae-api:scan
+            -e JWT_SECRET="$(openssl rand -hex 32)" hae-api:scan
           for _ in $(seq 1 30); do curl -fsS http://localhost:8080/actuator/health && exit 0; sleep 1; done
           docker logs api; exit 1
 
