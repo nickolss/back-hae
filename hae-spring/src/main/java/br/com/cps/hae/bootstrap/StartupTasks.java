@@ -10,6 +10,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import br.com.cps.hae.application.auth.ExpiredTokenCleaner;
 import br.com.cps.hae.application.auth.InitialAdminProvisioner;
+import br.com.cps.hae.application.demo.DemoDataSeeder;
+import br.com.cps.hae.application.demo.DemoSettings;
 import br.com.cps.hae.infrastructure.config.HaeProperties;
 
 /** Tarefas de inicialização e manutenção periódica. */
@@ -21,12 +23,16 @@ class StartupTasks implements ApplicationRunner {
 
     private final InitialAdminProvisioner adminProvisioner;
     private final ExpiredTokenCleaner tokenCleaner;
+    private final DemoDataSeeder demoSeeder;
+    private final DemoSettings demoSettings;
     private final HaeProperties properties;
 
-    StartupTasks(InitialAdminProvisioner adminProvisioner, ExpiredTokenCleaner tokenCleaner,
-            HaeProperties properties) {
+    StartupTasks(InitialAdminProvisioner adminProvisioner, ExpiredTokenCleaner tokenCleaner, DemoDataSeeder demoSeeder,
+            DemoSettings demoSettings, HaeProperties properties) {
         this.adminProvisioner = adminProvisioner;
         this.tokenCleaner = tokenCleaner;
+        this.demoSeeder = demoSeeder;
+        this.demoSettings = demoSettings;
         this.properties = properties;
     }
 
@@ -36,6 +42,10 @@ class StartupTasks implements ApplicationRunner {
         if (admin != null) {
             adminProvisioner.provision(admin.name(), admin.email(), admin.password());
         }
+        if (demoSettings.enabled() && !demoSettings.canSeed()) {
+            log.warn("DEMO_MODE ativo, mas DEMO_PASSWORD não foi definida: dados de demonstração não criados");
+        }
+        demoSeeder.seed(demoSettings);
     }
 
     @Scheduled(cron = "0 0 3 * * *", zone = "America/Sao_Paulo")

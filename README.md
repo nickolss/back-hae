@@ -59,6 +59,22 @@ set -a; . ./.env; set +a
 docker build -t hae-api .            # build nativo dentro do contêiner
 ```
 
+## Modo demonstração
+
+Para apresentações, a API pode criar sozinha uma unidade fictícia ("Fatec Demonstração", código 999) com cursos,
+7 contas (diretora, 2 coordenadores, 4 professores) e HAEs em todos os estados (pendente, aprovada, reprovada,
+fechamento em análise e concluída). Basta definir no ambiente:
+
+| Variável | Valor |
+|---|---|
+| `DEMO_MODE` | `true` |
+| `DEMO_PASSWORD` | senha comum das contas de demonstração (no Render, use o botão *Generate*) |
+
+- Os dados são criados uma única vez (idempotente) e nenhum e-mail é enviado.
+- Os e-mails das contas usam o domínio reservado `fatec-demo.example.com`; a tela de login lista as contas (sem a
+  senha) e exibe a faixa "Ambiente de demonstração".
+- `GET /api/v1/public/info` informa ao front se o modo está ativo.
+
 ## Segurança
 
 - Sessão: JWT HS256 em cookie `__Host-hae_session` (HttpOnly, Secure, SameSite=Lax, 2 h); papel recarregado do

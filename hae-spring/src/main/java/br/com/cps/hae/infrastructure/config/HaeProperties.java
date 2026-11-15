@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /** Configurações da aplicação (prefixo {@code hae}). Segredos vêm de variáveis de ambiente. */
 @ConfigurationProperties(prefix = "hae")
-public record HaeProperties(Jwt jwt, Mail mail, Cloudinary cloudinary, Registration registration, Admin admin) {
+public record HaeProperties(Jwt jwt, Mail mail, Cloudinary cloudinary, Registration registration, Admin admin,
+        Demo demo) {
 
     public record Jwt(String secret, @DefaultValue("PT2H") Duration ttl, @DefaultValue("hae-api") String issuer) {
     }
@@ -32,6 +33,13 @@ public record HaeProperties(Jwt jwt, Mail mail, Cloudinary cloudinary, Registrat
     }
 
     public record Admin(String name, String email, String password) {
+    }
+
+    /**
+     * Modo demonstração: popula o banco com dados fictícios. A senha das contas de demonstração vem de variável de
+     * ambiente (nunca do código).
+     */
+    public record Demo(@DefaultValue("false") boolean enabled, String password) {
     }
 
     private static boolean notBlank(String value) {
