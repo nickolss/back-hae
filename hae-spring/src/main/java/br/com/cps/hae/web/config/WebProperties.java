@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
- * @param allowedOrigins origens CORS permitidas (em produção o front usa proxy e não precisa de CORS)
+ * @param allowedOrigins origens permitidas (aceita padrões com *, ex.: https://app-*-time.vercel.app). Mesmo com o
+ *                       proxy da Vercel é necessário: o navegador envia o Origin do front, que difere do host da API.
  * @param cookieName     nome do cookie de sessão; em produção use o prefixo {@code __Host-}
  * @param cookieSecure   exige HTTPS para o cookie (desligar apenas em desenvolvimento local)
  * @param docsPublic     expõe /swagger-ui e /v3/api-docs sem autenticação

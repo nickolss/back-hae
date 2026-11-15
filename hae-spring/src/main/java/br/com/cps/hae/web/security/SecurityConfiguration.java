@@ -109,7 +109,8 @@ public class SecurityConfiguration {
 
     private static CorsConfigurationSource corsSource(List<String> allowedOrigins) {
         var config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins);
+        // padrões permitem os deploys de preview (URLs geradas a cada PR)
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "X-XSRF-TOKEN", "X-Requested-With"));
         config.setAllowCredentials(true);

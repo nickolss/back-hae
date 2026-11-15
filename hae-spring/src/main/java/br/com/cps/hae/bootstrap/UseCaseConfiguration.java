@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 
 import br.com.cps.hae.application.auth.RegistrationSettings;
+import br.com.cps.hae.application.demo.DemoSettings;
 import br.com.cps.hae.application.shared.UseCase;
 import br.com.cps.hae.infrastructure.config.HaeProperties;
 
@@ -21,6 +22,12 @@ class UseCaseConfiguration {
     @Bean
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    DemoSettings demoSettings(HaeProperties properties) {
+        var demo = properties.demo();
+        return demo == null ? new DemoSettings(false, null) : new DemoSettings(demo.enabled(), demo.password());
     }
 
     @Bean

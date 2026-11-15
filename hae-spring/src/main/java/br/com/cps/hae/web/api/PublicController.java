@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.cps.hae.application.demo.DemoAccount;
+import br.com.cps.hae.application.demo.DemoDataSeeder;
+import br.com.cps.hae.application.demo.DemoSettings;
 import br.com.cps.hae.application.institution.CourseService;
 import br.com.cps.hae.application.institution.CourseService.CourseView;
 import br.com.cps.hae.application.institution.InstitutionService;
@@ -23,10 +26,21 @@ class PublicController {
 
     private final InstitutionService institutions;
     private final CourseService courses;
+    private final DemoSettings demo;
 
-    PublicController(InstitutionService institutions, CourseService courses) {
+    PublicController(InstitutionService institutions, CourseService courses, DemoSettings demo) {
         this.institutions = institutions;
         this.courses = courses;
+        this.demo = demo;
+    }
+
+    record SystemInfo(boolean demo, List<DemoAccount> demoAccounts) {
+    }
+
+    /** Informa ao front se é um ambiente de demonstração (e as contas fictícias, sem senha). */
+    @GetMapping("/info")
+    SystemInfo info() {
+        return demo.enabled() ? new SystemInfo(true, DemoDataSeeder.ACCOUNTS) : new SystemInfo(false, List.of());
     }
 
     @GetMapping("/institutions")
